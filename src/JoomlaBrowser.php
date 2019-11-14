@@ -53,6 +53,14 @@ class JoomlaBrowser extends WebDriver
 	protected $locator;
 
 	/**
+	 * If the test run for "khonsu" template
+	 *
+	 * @var		boolean
+	 * @since	4.0.0
+	 */
+	protected $isKhonsu = false;
+
+	/**
 	 * Module constructor.
 	 *
 	 * Requires module container (to provide access between modules of suite) and config.
@@ -65,6 +73,10 @@ class JoomlaBrowser extends WebDriver
 	public function __construct(ModuleContainer $moduleContainer, $config = null)
 	{
 		parent::__construct($moduleContainer, $config);
+
+		// Check if the backend template is "khonsu" or not
+		$this->isKhonsu = isset($this->config['backend_template'])
+			&& $this->config['backend_template'] === 'khonsu';
 
 		// Instantiate the locator
 		$this->instantiateLocator();
@@ -128,6 +140,12 @@ class JoomlaBrowser extends WebDriver
 		if ($useSnapshot && $this->loadSessionSnapshot($user))
 		{
 			return;
+		}
+
+		if ($this->isKhonsu)
+		{
+			// Wait for preparing the login page
+			$this->wait(2);
 		}
 
 		$this->debug('I open Joomla Administrator Login Page');
@@ -238,13 +256,33 @@ class JoomlaBrowser extends WebDriver
 		$this->debug('I select en-GB as installation language');
 		$this->debug('Wait for chosen to render the Languages list field');
 		$this->selectOption('#jform_language', 'English (United Kingdom)');
+
+		if ($this->isKhonsu)
+		{
+			$this->click(['id' => 'step0']);
+		}
+
+		// Wait for fill the site name
 		$this->debug('I fill Site Name');
 		$this->fillField(['id' => 'jform_site_name'], 'Joomla CMS test');
+
+		// If the backend template is "khonsu" then fill the site email in this step
+		if ($this->isKhonsu)
+		{
+			$this->debug('I fill Admin Email');
+			$this->fillField(['id' => 'jform_admin_email'], $this->config['admin email']);
+		}
+
 		$this->click(['id' => 'step1']);
 
+		// If backend template is not "khonsu" then fill admin email after clicking #step1
+		if (!$this->isKhonsu)
+		{
+			$this->debug('I fill Admin Email');
+			$this->fillField(['id' => 'jform_admin_email'], $this->config['admin email']);
+		}
+
 		// I get the configuration from acceptance.suite.yml (see: tests/_support/acceptancehelper.php)
-		$this->debug('I fill Admin Email');
-		$this->fillField(['id' => 'jform_admin_email'], $this->config['admin email']);
 		$this->debug('I fill Admin Name');
 		$this->fillField(['id' => 'jform_admin_user'], $this->config['name']);
 		$this->debug('I fill Admin Username');
@@ -270,7 +308,16 @@ class JoomlaBrowser extends WebDriver
 		$this->debug('I click Install Joomla Button');
 		$this->click(['id' => 'setupButton']);
 		$this->wait(1);
-		$this->waitForText('Congratulations! Your Joomla site is ready.', TIMEOUT, ['xpath' => '//h2']);
+
+		// Check the text after clicking setupButton
+		if ($this->isKhonsu)
+		{
+			$this->waitForText('Please wait while your site is installing…', TIMEOUT, ['xpath' => '//p']);
+		}
+		else
+		{
+			$this->waitForText('Congratulations! Your Joomla site is ready.', TIMEOUT, ['xpath' => '//h2']);
+		}
 	}
 
 	/**
@@ -284,18 +331,41 @@ class JoomlaBrowser extends WebDriver
 	{
 		$this->installJoomla();
 
+		// For template "khonsu" wait 2 sec after installation finished
+		if ($this->isKhonsu)
+		{
+			$this->wait(2);
+			$this->amOnPage('/installation/index.php');
+		}
+
 		$this->debug('Removing Installation Folder');
 		$this->click(['id' => 'removeInstallationFolder']);
 
 		// Accept the confirmation alert
-		$this->seeInPopup('Are you sure you want to delete?');
+		if ($this->isKhonsu)
+		{
+			$this->seeInPopup('Are you sure you want to delete? Confirming will permanently delete the installation folder.');
+		}
+		else
+		{
+			$this->seeInPopup('Are you sure you want to delete?');
+		}
+
 		$this->acceptPopup();
 
 		// Wait until the installation folder is gone and the "customize installation" box has been removed
 		$this->waitForElementNotVisible(['id' => 'installAddFeatures']);
 
 		$this->debug('Joomla is now installed');
-		$this->click(['link' => "Complete & Open Admin"]);
+
+		if ($this->isKhonsu)
+		{
+			$this->click(['link' => "Open Admin"]);
+		}
+		else
+		{
+			$this->click(['link' => "Complete & Open Admin"]);
+		}
 	}
 
 	/**
