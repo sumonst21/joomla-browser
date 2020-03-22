@@ -256,20 +256,20 @@ class JoomlaBrowser extends WebDriver
 
 		// I Wait for the text Main Configuration, meaning that the page is loaded
 		$this->debug('I wait for Main Configuration');
-		//$this->waitForElement('#jform_language_chzn', 10);
+		$this->waitForElement('#jform_language', 10);
 		$this->debug('Wait for chosen to render the Languages list field');
 		$this->wait(2);
 		$this->debug('I select es-ES as installation language');
 
 		// Select a random language to force reloading of the lang strings after selecting English
-		$this->selectOptionInChosenByIdUsingJs('#jform_language', 'Español (España)');
+		$this->selectOptionInChosenWithTextField('#jform_language', 'Español (España)');
 		$this->waitForText('Configuración principal', TIMEOUT, 'h3');
 
 		// Wait for chosen to render the field
 		$this->debug('I select en-GB as installation language');
 		$this->debug('Wait for chosen to render the Languages list field');
 		$this->wait(2);
-		$this->selectOptionInChosenByIdUsingJs('#jform_language', 'English (United Kingdom)');
+		$this->selectOptionInChosenWithTextField('#jform_language', 'English (United Kingdom)');
 		$this->waitForText('Main Configuration', TIMEOUT, 'h3');
 		$this->debug('I fill Site Name');
 		$this->fillField(array('id' => 'jform_site_name'), 'Joomla CMS test');
