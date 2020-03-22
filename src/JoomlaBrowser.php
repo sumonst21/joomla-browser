@@ -256,7 +256,7 @@ class JoomlaBrowser extends WebDriver
 
 		// I Wait for the text Main Configuration, meaning that the page is loaded
 		$this->debug('I wait for Main Configuration');
-		$this->waitForElement('#jform_language', 10);
+		$this->waitForElement('#jform_language_chzn', 10);
 		$this->debug('Wait for chosen to render the Languages list field');
 		$this->wait(2);
 		$this->debug('I select es-ES as installation language');
